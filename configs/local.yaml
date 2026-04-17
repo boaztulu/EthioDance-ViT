@@ -1,0 +1,22 @@
+# Local / debug config — tiny batches, minimal epochs, CPU-safe.
+_base_: base.yaml
+
+experiment:
+  tag: local-smoke
+
+train:
+  epochs: 3
+  batch_size: 2
+  num_workers: 0                      # Windows-friendly; avoids mp spawn issues
+  mixed_precision: false              # CPU-safe default; enable on local GPU
+  sampler: weighted_random
+
+eval:
+  batch_size: 2
+  num_workers: 0
+
+debug:
+  enabled: true
+  max_train_batches: 3
+  max_val_batches: 2
+  epochs: 2

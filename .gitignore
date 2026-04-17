@@ -1,0 +1,64 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ---- Environments ----
+.venv/
+venv/
+env/
+.env
+.envrc
+
+# ---- Editors ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Heavy artifacts (stored OUTSIDE the repo) ----
+# These paths should never live inside the git tree. They are relative to the
+# repo root and are listed here defensively in case a user symlinks them in.
+experiments/
+outputs/
+checkpoints/
+runs/
+wandb/
+mlruns/
+slurm_logs/
+cache/
+
+# ---- Data ----
+Data/
+data/
+*.zip
+*.tar
+*.tar.gz
+
+# ---- Model weights / large binaries ----
+*.pth
+*.pt
+*.bin
+*.ckpt
+*.safetensors
+*.onnx
+
+# ---- Figures produced at runtime ----
+figures/
+*.mp4
+*.avi
+*.mkv
+
+# Allow documentation assets under docs/
+!docs/figures/

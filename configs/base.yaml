@@ -1,0 +1,93 @@
+# -----------------------------------------------------------------------------
+# Base configuration. Other configs inherit by YAML merge via utils.config.
+# Paths are interpreted relative to the repo root unless absolute.
+# -----------------------------------------------------------------------------
+
+experiment:
+  name: ethiodance-timesformer
+  seed: 42
+  output_root: ../experiments        # heavy artifacts live OUTSIDE the repo
+  tag: base                           # appended to run id
+
+data:
+  root: ../Data/ALL                   # directory containing the 5 class folders
+  splits_file: configs/splits.json    # produced by scripts/prepare_splits.py
+  class_dirs:                         # maps class name -> folder name
+    Amhara:   "data set Amhara"
+    Oromo:    "data set oromo"
+    Woliyta:  "data set Woliyta"
+    Gurageya: "data set Gurageya"
+    Tigriga:  "data set Tigriga"
+  num_classes: 5
+  num_frames: 8                       # TimeSformer default (K400 checkpoint)
+  frame_size: 224
+  sampling:
+    train: random_segment             # random_segment | uniform
+    val:   uniform
+    test:  uniform
+  augmentation:
+    horizontal_flip_p: 0.5
+    color_jitter: [0.4, 0.4, 0.4]     # brightness, contrast, saturation
+    random_resized_crop_scale: [0.6, 1.0]
+    mean: [0.45, 0.45, 0.45]          # Kinetics normalization
+    std:  [0.225, 0.225, 0.225]
+  mixup:
+    enabled: true
+    alpha: 0.2                        # Beta(alpha, alpha); 0 = disabled
+
+model:
+  source: huggingface
+  name: facebook/timesformer-base-finetuned-k400
+  freeze_backbone: true               # True -> train head + last_n_blocks only
+  last_n_blocks_unfrozen: 2           # fine-tune last N transformer blocks
+  dropout: 0.1
+
+loss:
+  type: class_balanced_focal          # class_balanced_focal | ce | weighted_ce
+  focal_gamma: 2.0
+  cb_beta: 0.9999                     # effective-number hyperparameter
+
+optim:
+  optimizer: adamw
+  lr: 5.0e-5                          # low LR: backbone is pretrained
+  head_lr_mult: 10.0                  # classifier head LR = lr * mult
+  weight_decay: 0.05
+  betas: [0.9, 0.999]
+
+scheduler:
+  type: cosine_annealing              # cosine_annealing | none
+  warmup_epochs: 2
+  min_lr: 1.0e-7
+
+train:
+  epochs: 50
+  batch_size: 8
+  grad_accum_steps: 1
+  num_workers: 4
+  pin_memory: true
+  mixed_precision: true               # bf16 on A100, fp16 fallback
+  grad_clip_norm: 1.0
+  sampler: weighted_random            # weighted_random | shuffle
+  early_stopping:
+    enabled: true
+    patience: 8
+    min_delta: 0.001
+    metric: val_accuracy              # val_accuracy | val_loss | val_f1_macro
+  checkpoint:
+    save_every_n_epochs: 5
+    keep_last: 3
+
+eval:
+  batch_size: 8
+  num_workers: 4
+
+logging:
+  log_every_n_steps: 10
+  tensorboard: true
+  save_confusion_matrix_every_epoch: true
+
+debug:
+  enabled: false
+  max_train_batches: 2
+  max_val_batches: 2
+  epochs: 2

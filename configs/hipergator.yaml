@@ -1,0 +1,35 @@
+# Full-training config for HiPerGator (hpg-turin, 1x A100-class GPU).
+_base_: base.yaml
+
+experiment:
+  tag: hipergator-full
+
+data:
+  num_frames: 8                       # bump to 16 if memory allows
+  frame_size: 224
+
+train:
+  epochs: 80
+  batch_size: 16
+  grad_accum_steps: 2                 # effective batch = 32
+  num_workers: 8
+  pin_memory: true
+  mixed_precision: true
+  early_stopping:
+    enabled: true
+    patience: 12
+
+eval:
+  batch_size: 32
+  num_workers: 8
+
+optim:
+  lr: 5.0e-5
+  head_lr_mult: 10.0
+
+model:
+  freeze_backbone: true
+  last_n_blocks_unfrozen: 4           # more capacity on full run
+
+debug:
+  enabled: false
