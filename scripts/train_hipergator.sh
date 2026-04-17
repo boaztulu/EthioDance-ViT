@@ -14,8 +14,9 @@
 #SBATCH --requeue
 #SBATCH --mail-type=BEGIN,END,FAIL,REQUEUE
 #SBATCH --mail-user=btulu@ufl.edu
-#SBATCH --output=../slurm_logs/ethiodance_%j.out
-#SBATCH --error=../slurm_logs/ethiodance_%j.err
+#SBATCH --output=slurm_logs/ethiodance_%j.out
+#SBATCH --error=slurm_logs/ethiodance_%j.err
+#SBATCH --chdir=.                      # run from the directory sbatch was invoked in
 
 # =============================================================================
 # EthioDance-ViT — TimeSformer fine-tuning on HiPerGator
@@ -32,16 +33,39 @@
 
 set -euo pipefail
 
-# All heavy artifacts live OUTSIDE the git repo (one level up).
+# Resolve the repo root from the script location (robust to sbatch cwd).
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
-mkdir -p ../slurm_logs ../experiments
+# -----------------------------------------------------------------------------
+# Directories
+# -----------------------------------------------------------------------------
+# SLURM logs: small text files — kept INSIDE the repo at slurm_logs/ (the dir
+# is committed via a .gitkeep; contents are gitignored).
+mkdir -p slurm_logs
 
-# ---- Run directory (stable across requeues of the same SLURM job) -----------
+# Experiments (checkpoints are large — kept OUTSIDE the repo).
+# Precedence:
+#   1. ETHIODANCE_EXP_DIR env var (explicit user override)
+#   2. ../experiments next to the repo (if that parent is writable)
+#   3. $HOME/ethiodance_experiments (always-safe fallback)
+pick_experiments_root() {
+    if [[ -n "${ETHIODANCE_EXP_DIR:-}" ]]; then
+        echo "${ETHIODANCE_EXP_DIR}"; return
+    fi
+    local sibling="$(cd .. && pwd)/experiments"
+    if mkdir -p "${sibling}" 2>/dev/null; then
+        echo "${sibling}"; return
+    fi
+    echo "${HOME}/ethiodance_experiments"
+}
+EXP_ROOT="$(pick_experiments_root)"
+mkdir -p "${EXP_ROOT}"
+
+# Per-job run dir — stable across requeues of the SAME SLURM job id.
 BASE_JOB_ID="${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID:?SLURM_JOB_ID unset}}"
-RUN_DIR="${RUN_DIR:-$(pwd)/../experiments/ethiodance_${BASE_JOB_ID}}"
+RUN_DIR="${RUN_DIR:-${EXP_ROOT}/ethiodance_${BASE_JOB_ID}}"
 mkdir -p "${RUN_DIR}/checkpoints"
 
 # ---- Environment ------------------------------------------------------------
@@ -57,6 +81,9 @@ echo "Job ID       : ${SLURM_JOB_ID}"
 echo "Base job id  : ${BASE_JOB_ID}"
 echo "Node         : $(hostname)"
 echo "GPU          : ${CUDA_VISIBLE_DEVICES:-none}"
+echo "Repo root    : ${REPO_ROOT}"
+echo "Slurm logs   : ${REPO_ROOT}/slurm_logs/"
+echo "Experiments  : ${EXP_ROOT}"
 echo "Run dir      : ${RUN_DIR}"
 echo "Started      : $(date -Iseconds)"
 echo "============================================================"

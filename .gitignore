@@ -36,8 +36,12 @@ checkpoints/
 runs/
 wandb/
 mlruns/
-slurm_logs/
 cache/
+
+# ---- SLURM logs live INSIDE the repo (small text files) ----
+# Keep the directory but ignore the generated log files.
+slurm_logs/*
+!slurm_logs/.gitkeep
 
 # ---- Data ----
 Data/
